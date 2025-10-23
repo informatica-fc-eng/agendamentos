@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Exame</title>
+    <link rel="stylesheet" href="style03.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        (function () {
+            emailjs.init("s80eXspwJfqK4ZLif"); // substitua pelo seu Public Key do EmailJS
+        })();
+    </script>
+</head>
+
+<body>
+
+  
+    <div class="content-container">
+
+      <div class="branding-panel">
+        <div class="logo-box">
+          <img src="./img/branco.png" alt="">
+        </div>
+      </div>
+
+      <div class="content-form">
+        <div class="container">
+            <img src="./img/WhatsApp_Image_2025-09-17_at_11.02.44-removebg-preview.png" alt="" class="sistema-logo">
+            <h2 class="form-title">Agendar Atendimento</h2>
+            <p class="form-subtitle">Olá, Insira seus dados para Agendar seu Exame Periódico</p>
+
+            <input type="text" id="nome" placeholder="Seu nome" required>
+            <input type="email" id="email" placeholder="Seu e-mail" required>
+            <input type="tel" id="telefone" placeholder="Seu celular (Ex: 55 (31) 9999-8888)" maxlength="17" required>
+
+            <input type="date" id="data" required>
+            <!-- atualizado -->
+            <select id="hora" required disabled>
+                <option value="">Selecione primeiro uma data entre 03/11/25 - 04/11/25</option>
+            </select>
+
+
+            <textarea id="mensagem" placeholder="Observações (opcional)"></textarea>
+
+            <button onclick="enviarEmail()">Agendar</button>
+
+            <p id="statusMsg"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="fecharModal()">&times;</span>
+            <div class="modal-body">
+                <h2>✅ Agendamento Confirmado!</h2>
+                <p>Seu agendamento foi enviado com sucesso.</p>
+                <p>Em breve você receberá um e-mail de confirmação com todos os detalhes.</p>
+                <div class="appointment-details">
+                    <p><strong>Nome:</strong> <span id="modalNome"></span></p>
+                    <p><strong>E-mail:</strong> <span id="modalEmail"></span></p>
+                    <p><strong>Telefone:</strong> <span id="modalTelefone"></span></p>
+                    <p><strong>Data:</strong> <span id="modalData"></span></p>
+                    <p><strong>Hora:</strong> <span id="modalHora"></span></p>
+                </div>
+                <button onclick="fecharModal()">Ok, Entendi</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="whatsappAuthModal" class="modal whatsapp-auth-modal">
+        <div class="modal-content whatsapp-auth-content">
+            <span class="close-button" onclick="fecharAuthModal()">&times;</span>
+            <div class="modal-body">
+                <h2 class="modal-whatsapp-title">Confirmação de Contato Rápida!</h2>
+                <p>Para garantir que você receba a confirmação do seu agendamento (e futuros avisos) em tempo real via WhatsApp, precisamos autorizar o nosso canal de testes (Twilio Sandbox).</p>
+                
+                <p class="modal-instruction"><strong>COPIE</strong> o código abaixo e cole no WhatsApp.</p>
+                
+                <div class="join-code-container">
+                    <span id="joinCodeText">join feathers-cabin</span>
+                    
+                    <button class="copy-button" onclick="copiarCodigo('joinCodeText', this)">Copiar</button>
+                </div>
+                <p class="modal-instruction">Clique para abrir o Whatsapp</p>
+                <a id="whatsappAuthLink" href="#" target="_blank" onclick="fecharAuthModal()">
+                    <button class="whatsapp-send-button">Autorizar WhatsApp Agora</button>
+                </a>
+                
+                <p class="auth-warning">
+                    <span style="font-weight: bold;">⚠️ **Atenção:**</span> Se não fizer isso, não conseguiremos te enviar a confirmação pelo WhatsApp.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+  // Máscara para o campo de telefone no formato: 55 (31) 9999-8888
+  const telefoneInput = document.getElementById("telefone");
+
+  // Preenche automaticamente com "55 " ao focar no campo
+  telefoneInput.addEventListener("focus", function () {
+    if (telefoneInput.value.trim() === "") {
+      telefoneInput.value = "55 ";
+    }
+  });
+
+  // Impede apagar o "55 " totalmente
+  telefoneInput.addEventListener("keydown", function (e) {
+    if (telefoneInput.selectionStart <= 2 && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
+    }
+  });
+
+  telefoneInput.addEventListener("input", function (e) {
+    let valor = e.target.value.replace(/\D/g, ""); // mantém só números
+
+    // Garante que sempre comece com "55"
+    if (!valor.startsWith("55")) {
+      valor = "55" + valor;
+    }
+
+    // Aplica a máscara conforme o tamanho
+    if (valor.length > 12) {
+      valor = valor.replace(/^(\d{2})(\d{2})(\d{5})(\d{4}).*/, "$1 ($2) $3-$4");
+    } else if (valor.length > 10) {
+      valor = valor.replace(/^(\d{2})(\d{2})(\d{4})(\d{0,4}).*/, "$1 ($2) $3-$4");
+    } else if (valor.length > 7) {
+      valor = valor.replace(/^(\d{2})(\d{2})(\d{0,5})/, "$1 ($2) $3");
+    } else if (valor.length > 4) {
+      valor = valor.replace(/^(\d{2})(\d{0,2})/, "$1 ($2");
+    } else {
+      valor = valor.replace(/^(\d*)/, "$1");
+    }
+
+    e.target.value = valor;
+  });
+</script>
+
+
+    <script src="script03.js"></script>
+</body>
+
+</html>
